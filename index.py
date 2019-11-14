@@ -1,7 +1,7 @@
 from Tkinter import *
 import sqlite3
 from tkMessageBox import *
-#import splash
+# import splash
 
 
 con = sqlite3.Connection('pb-db')
@@ -10,16 +10,17 @@ cur.execute('PRAGMA foreign_keys = ON')
 a='create table if not exists person(id integer primary key AUTOINCREMENT,fname varchar(25),mname varchar(25),lname varchar(25),company varchar(30),address text,city varchar(30),pin integer,website varchar(100))'
 cur.execute(a)
 
-b ='create table if not exists phone_no(id integer primary key ,contact_type integer ,phone_number integer check(length(phone_number =10)),CONSTRAINT fk_pno foreign key(id) references person(id) ON DELETE CASCADE)'
+b ='create table if not exists phone_no(id integer primary key ,contact_type varchar(30) ,phone_number integer,CONSTRAINT fk_pno foreign key(id) references person(id) ON DELETE CASCADE)'
 cur.execute(b)
 
-r = 'create table if not exists email(id integer primary key ,email_type integer ,email_address varchar(50) ,CONSTRAINT fk_email foreign key(id) references person(id) ON DELETE CASCADE)'
+r = 'create table if not exists email(id integer primary key ,email_type varchar(30) ,email_address varchar(50) ,CONSTRAINT fk_email foreign key(id) references person(id) ON DELETE CASCADE)'
 cur.execute(r)
+
 
 
 root=Tk()
 root.wm_title('PhoneBook')
-root.geometry('330x550')
+root.geometry('330x650')
 Image = PhotoImage(file='p1.gif')
 Label(root,text='             ').grid(row=1,column=0)
 Label(root,text='PhoneBook GUI',font='Arial 20').grid(row=1,column=1)
@@ -67,6 +68,8 @@ pincode.grid(row=11,column=1)
 
 p10=Label(root,text='Select Phone Type',bg='plum1')
 p10.grid(row=12,column=0)
+
+
 phone_type=IntVar()
 Radiobutton(root,text='Office',value=1,variable=phone_type,activebackground='seagreen1').grid(row=12,column=1)
 Radiobutton(root,text='Home',value=2,variable=phone_type,activebackground='seagreen1').grid(row=13,column=1)
@@ -101,9 +104,139 @@ def save():
 	fn,mn,ln,cn,add,cit,pin,web=fname.get(),mname.get(),lname.get(),comp_name.get(),address.get(),city.get(),pincode.get(),website.get()
 	query=[(fn,mn,ln,cn,add,cit,pin,web)]
 	g ='insert into person(fname,mname,lname,company,address,city,pin,website) values(?,?,?,?,?,?,?,?)'
-
-	print("query : ",query)
+	# print("query : ",query)
 	cur.executemany(g,query)
+	q2 = 'select max(id) from person'
+	cur.execute(q2)
+	f_id = cur.fetchall()
+	f_id = f_id[0][0]
+
+	phone_type_a = phone_type.get()
+	phone_no_a = phone_number.get()
 	
-Button(root,text='Insert',command=save).grid(row=22,column=1)
+	
+	
+	if phone_no_a is not '':
+		if phone_type_a !=0:
+			if phone_type_a ==1:
+				query2 = 'insert into phone_no values(?,"Office",?)'
+			elif phone_type_a ==2:
+				query2='insert into phone_no values(?,"Home",?)'
+			elif phone_type_a ==3:
+				query2='insert into phone_no values(?,"Mobile",?)'
+		else:
+			query2='insert into phone_no values(?,"Mobile",?)'
+		var2 = [(f_id),(phone_no_a)]
+		cur.execute(query2,var2)
+		cur.execute('select * from phone_no')
+		# print(cur.fetchall())
+		
+	## email table
+	email_type_a  = email_type.get()
+	email_a = email.get()
+	if email_a is not '':
+		if email_type_a is not 0:
+			if email_type_a ==1:
+				query3 = 'insert into email values(?,"Personal",?)'
+			elif email_type_a ==2:
+				query3 = 'insert into email values(?,"Office",?)'
+		else:
+			query3 = 'insert into email values(?,"Personal",?)'
+		var3 = [(f_id),(email_a)]
+		cur.execute(query3,var3)
+		# print(var3)
+	cur.execute('select * from person')
+	# print("person :",cur.fetchall())
+	cur.execute('select * from email')
+	# print("email : ",cur.fetchall())
+	con.commit()
+
+	##deleting ALL the entries
+	fname.delete(0,END)
+	mname.delete(0,END)
+	lname.delete(0,END)
+	comp_name.delete(0,END)
+	address.delete(0,END)
+	city.delete(0,END)
+	pincode.delete(0,END)
+	website.delete(0,END)
+	email.delete(0,END)
+	phone_number.delete(0,END)
+	##########################
+
+
+def close():
+	root.destroy()
+k=[]
+def search():
+	top = Toplevel()
+	top.wm_title('Search contacts')
+	top.geometry('430x850')
+	Label(top,text='Search Contacts',font="Arial 20").grid(row=1,column=2)
+	# Label(top,text='                                                       ').grid(row=1,column=1)
+	Label(top,text='Enter name').grid(row=2,column=1)
+	search=Entry(top)
+	search.grid(row=2,column=2)
+	lb = Listbox(top,width=60,height=30)
+	lb.grid(row=3,column=2)
+	def fire(e=0):
+		q = search.get()
+		lb.delete(0,END)
+		x = "select id,fname,mname,lname from person where fname like '%{}%' or mname like '%{}%' or lname like '%{}%'".format(q,q,q)
+		cur.execute(x)
+		global k
+		k = cur.fetchall()
+		# print(k)
+		i = 0
+
+		while(i<len(k)):
+			fn = k[i][1]+' '+k[i][2]+' '+k[i][3]
+			lb.insert(0,fn)
+			i+=1
+	def showing(e=0):
+		per = lb.curselection()
+		ind = per[0]
+		lb.delete(0,END)
+		global k
+		ind = len(k)-ind-1
+		ikd = k[ind][0]
+		top2 = Toplevel()
+		top2.geometry('550x350')
+		cur.execute('select * from person where id = ?',(ikd,))
+		tab1  = cur.fetchall()
+		print(tab1)
+		Label(top2,text='                              ').grid(row=0,column=0)
+		Label(top2,text='Search Result',font="Arial 25").grid(row=0,column=1)
+		Label(top2,text="Name : {}".format((tab1[0][1]+" "+tab1[0][2]+" "+tab1[0][3])),font="Arial 16").grid(row=1,column=1)
+		Label(top2,text="Company : {}".format(tab1[0][4]),font="Arial 16").grid(row=2,column=1)
+		Label(top2,text="Address : {}".format(tab1[0][5]),font="Arial 16").grid(row=3,column=1)
+		Label(top2,text="City : {}".format(tab1[0][6]),font="Arial 16").grid(row=4,column=1)
+		Label(top2,text="Website : {}".format(tab1[0][7]),font="Arial 16").grid(row=5,column=1)
+		cur.execute('select * from phone_no where id = ?',(ikd,))
+		tab2  = cur.fetchall()
+		print(tab2)
+		if len(tab2)!=0:
+			Label(top2,text="Phone Type : {}".format(tab2[0][1]),font="Arial 16").grid(row=6,column=1)
+			Label(top2,text="Phone Number : {}".format(tab2[0][2]),font="Arial 16").grid(row=7,column=1)
+		else:
+			Label(top2,text="Phone Type : Not Entered Yet".format(tab2[0][1])).grid(row=6,column=1)
+			Label(top2,text="Phone Number : Not Entered Yet".format(tab2[0][2])).grid(row=7,column=1)
+		
+		cur.execute('select * from email where id = ?',(ikd,))
+
+		tab3 = cur.fetchall()
+		if len(tab3)!=0:
+			Label(top2,text="Email Type : {}".format(tab3[0][1]),font="Arial 16").grid(row=8,column=1)
+			Label(top2,text="Email Id : {}".format(tab3[0][2]),font="Arial 16").grid(row=9,column=1)
+		else :
+			Label(top2,text="Email Type : Not Entered Yet".format(tab3[0][1]),font="Arial 16").grid(row=8,column=1)
+			Label(top2,text="Email Id : Not Entered Yet".format(tab3[0][2]),font="Arial 16").grid(row=9,column=1)
+	search.bind('<Button-1>',fire)
+	top.bind('<Key>',fire)
+	lb.bind('<Double-Button-1>',showing)
+
+
+Button(root,text='Insert',command=save).grid(row=22,column=1,pady=5)
+Button(root,text='Search',command=search).grid(row=23,column=1,pady=5)
+Button(root,text='Exit',command=close).grid(row=24,column=1,pady=5)
 root.mainloop()
