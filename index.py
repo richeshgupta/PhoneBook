@@ -182,12 +182,12 @@ def close():
 def search():
 	top = Toplevel()
 	top.wm_title('Search contacts')
-	top.geometry('460x850')
+	top.geometry('500x400')
 	Label(top,text='Search Contacts',font="Arial 20").grid(row=1,column=2)
-	Label(top,text='Enter name').grid(row=2,column=1)
+	Label(top,text='Enter name',font="Arial 13").grid(row=2,column=1)
 	search=Entry(top)
 	search.grid(row=2,column=2)
-	lb = Listbox(top,width=60,height=30)
+	lb = Listbox(top,width=65,height=20)
 	lb.grid(row=3,column=2)
 	def fire(e=0):
 		q = search.get()
@@ -196,10 +196,7 @@ def search():
 		cur.execute(x)
 		global k
 		k = cur.fetchall()
-
-		# print(k)
 		i = 0
-
 		while(i<len(k)):
 			fn = k[i][1]+' '+k[i][2]+' '+k[i][3]
 			lb.insert(0,fn)
